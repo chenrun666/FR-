@@ -15,19 +15,10 @@ from bin.myexception import BackException
 
 
 class Base(object):
-    def __init__(self, *args):
+    def __init__(self, datas):
         self.now_time_year = int(time.strftime("%Y", time.localtime()))
 
-        if TEST:
-            # 测试环境
-            with open("../files/test.json", "r", encoding="utf-8") as f:
-                self.task_response = json.load(f)
-                # task_response = json.dumps(task_response)
-        else:
-            self.task_response = {}
-
         # 读取获取的任务信息，填写回填信息
-        datas = self.task_response["data"]
         # 账号信息
         result["accountPassword"] = datas["pnrVO"]["accountPassword"]
         result["accountType"] = datas["pnrVO"]["accountType"]
@@ -121,12 +112,12 @@ class Action(Base):
 
         # 当前运行状态，如果页面动作出现错误之后将终止运行
         self.run_status = True
-        super(Action, self).__init__()
+        super(Action, self).__init__(datas)
         try:
             self.driver = webdriver.Chrome()
             # self.driver.set_page_load_timeout(60)
             self.wait = WebDriverWait(self.driver, 20, 0.5)
-            child, teen, adult = Base().calculation_passenger_age(self.passenger)
+            child, teen, adult = Base(datas).calculation_passenger_age(self.passenger)
             self.driver.get(self.index_url.format(self.orgin, self.destination, self.date, adult, teen, child))
 
             logger.info("初始化webdriver对象")
@@ -166,9 +157,13 @@ class Action(Base):
             else:
                 logger.debug(f"fill_input:{xpath}该元素不可操作")
                 self.run_status = False
+                self.result["status"] = 401
+                self.result["errorMessage"] = "获取的元素不可用"
         except Exception as e:
             logger.error(f"定位{xpath}时，填写{content}时出错，错误信息：{str(e)}")
             self.run_status = False
+            self.result["status"] = 401
+            self.result["errorMessage"] = "获取元素失败"
 
     def click_btn(self, xpath, el=None):
         try:
@@ -184,6 +179,8 @@ class Action(Base):
                 else:
                     logger.debug(f"click_btn:{xpath}该元素不可操作")
                     self.run_status = False
+                    self.result["status"] = 401
+                    self.result["errorMessage"] = "获取的元素不可用"
 
             else:
                 el.find_element_by_xpath(xpath=xpath).click()
@@ -191,9 +188,13 @@ class Action(Base):
         except TimeoutException:
             logger.error(f"点击{xpath}超时")
             self.run_status = False
+            self.result["status"] = 401
+            self.result["errorMessage"] = "获取的元素超时"
         except Exception as e:
             logger.error(f"定位{xpath}时，点击click时出错，错误信息：{str(e)}")
             self.run_status = False
+            self.result["status"] = 401
+            self.result["errorMessage"] = "获取的元素出现错误"
 
     def get_text(self, xpath):
         try:
@@ -207,6 +208,8 @@ class Action(Base):
         except Exception as e:
             logger.error(f"获取页面文本值出错，错误信息为{str(e)}")
             self.run_status = False
+            self.result["status"] = 401
+            self.result["errorMessage"] = "获取的元素出现错误"
 
     def scroll_screen(self, el=None):
         if not el:
@@ -232,9 +235,13 @@ class Action(Base):
         except TimeoutException:
             logger.error(f"获取元素{xpath}超时")
             self.run_status = False
+            self.result["status"] = 401
+            self.result["errorMessage"] = "获取的元素超时"
         except Exception as e:
             logger.error(f"获取元素{xpath}时，获取元素发生错误，错误信息：{str(e)}")
             self.run_status = False
+            self.result["status"] = 401
+            self.result["errorMessage"] = "获取的元素出现错误"
 
     def selection(self, xpath, value=None, text=None):
         """
@@ -259,55 +266,22 @@ class Action(Base):
         except Exception as e:
             logger.error(f"获取元素{xpath}时，获取元素发生错误，错误信息：{str(e)}")
             self.run_status = False
+            self.result["status"] = 401
+            self.result["errorMessage"] = "选择元素出现错误"
 
 
 class Purchase(Action):
     def __init__(self):
-        # if TEST:
-        #     # 测试环境
-        #     with open("../files/test.json", "r", encoding="utf-8") as f:
-        #         task_response = json.load(f)
-        #         # task_response = json.dumps(task_response)
-        # else:
-        #     task_response = {}
+        if TEST:
+            # 测试环境
+            with open("../files/test.json", "r", encoding="utf-8") as f:
+                task_response = json.load(f)
+                # task_response = json.dumps(task_response)
+        else:
+            task_response = {}
         #
         # # 读取获取的任务信息，填写回填信息
-        datas = self.task_response["data"]
-        # # 账号信息
-        # result["accountPassword"] = datas["pnrVO"]["accountPassword"]
-        # result["accountType"] = datas["pnrVO"]["accountType"]
-        # # 卡信息
-        # result["cardName"] = datas["pnrVO"]["cardName"]
-        # result["cardNumber"] = datas["pnrVO"]["cardNumber"]
-        # # 检查状态
-        # result["checkStatus"] = datas["pnrVO"]["checkStatus"]
-        # result["createTaskStatus"] = datas["pnrVO"]["createTaskStatus"]
-        # # 联系方式
-        # result["linkEmail"] = datas["pnrVO"]["linkEmail"]
-        # result["linkEmailPassword"] = datas["pnrVO"]["linkEmailPassword"]
-        # result["linkPhone"] = datas["pnrVO"]["linkPhone"]
-        # # 目标币种
-        # result["targetCur"] = datas["pnrVO"]["targetCur"]
-        # result["nameList"] = datas["pnrVO"]["nameList"]
-        # # 任务ID
-        # result["payTaskId"] = datas["pnrVO"]["payTaskId"]
-        # # 来源币种
-        # result["sourceCur"] = datas["pnrVO"]["sourceCur"]
-        # # 机器码标识
-        # result["machineCode"] = 'frbendi'
-        # result["clientType"] = 'FR_PAY_CLIENT'
-        #
-        # result["promo"] = None
-        # result["creditEmail"] = None
-        # result["creditEmailCost"] = None
-        #
-        # result["pnr"] = None
-        # result["price"] = None
-        # result["baggagePrice"] = None
-        # result["errorMessage"] = None
-        # result["status"] = None
-
-        # self.result = result
+        datas = task_response["data"]
         # 当前年份
         self.now_time_year = int(time.strftime("%Y", time.localtime()))
 
@@ -328,7 +302,7 @@ class Purchase(Action):
         self.cardholder = datas["payPaymentInfoVo"]["cardVO"]["firstName"] + ' ' + datas["payPaymentInfoVo"]["cardVO"][
             "lastName"]
         self.cardexpired = datas["payPaymentInfoVo"]["cardVO"]["cardExpired"]
-        self.sourceprice = float(datas["sourcePrice"])
+        self.targetPrice = float(datas["targetPrice"])
 
         super(Purchase, self).__init__(datas)
 
@@ -596,11 +570,11 @@ class Purchase(Action):
 
         # 回填行李价格，总价格
         self.result["baggagePrice"] = float(bag_price)
-        self.result["price"] = float(total_price)
+        self.result["price"] = float(total_price) - float(bag_price)
 
         # 总价格减去行李价格, 使用该价格与任务价格做比较。大于任务价格。购买失败。小于继续购买
         target_price = float(total_price) - float(bag_price)
-        if target_price > self.sourceprice:
+        if target_price > self.targetPrice:
             # 实际价格大于任务价格。取消购买
             self.run_status = False
             logger.info("实际购买价格大于任务价格，取消购买")
